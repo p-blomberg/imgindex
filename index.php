@@ -1,25 +1,21 @@
 <?php
 require "_settings.php";
+set_time_limit(300);
 
-function thumbdir() {
-	global $thumbs;
-	if(!file_exists($thumbs)) {
-		if(!mkdir($thumbs)) {
-			throw new Exception("Failed to create thumbs directory.");
+function check_target_dir($dir) {
+	if(!file_exists($dir)) {
+		if(!mkdir($dir)) {
+			throw new Exception("Failed to create target directory.");
 		}
 	}
-	if(!is_writable($thumbs)) {
-		throw new Exception("Unable to write to thumbs directory.");
+	if(!is_writable($dir)) {
+		throw new Exception("Unable to write to target directory.");
 	}
-	return $thumbs;
+	return $dir;
 }
 
-function create_thumb($filename) {
-	global $images;
-	global $thumb_prefs;
-	$thumbs = thumbdir();
-
-	$str = file_get_contents($images.$filename);
+function create_scaled_file($filename, $prefs, $source_dirname, $target_dirname) {
+	$str = file_get_contents($source_dirname.$filename);
 	if($str === false) {
 		throw new Exception("Unable to read file");
 	}
@@ -31,27 +27,39 @@ function create_thumb($filename) {
 	$aspect = imagesx($orig_im) / imagesy($orig_im);
 	if($aspect > 1) {
 		// X is larger than Y
-		$x = $thumb_prefs['max_width'];
+		$x = $prefs['max_width'];
 		$y = $x / $aspect;
 	} else {
 		// Y is larger than X
-		$y = $thumb_prefs['max_height'];
+		$y = $prefs['max_height'];
 		$x = $y * $aspect;
 	}
-	$thumb_im = imagecreatetruecolor($x, $y);
+	$target_im = imagecreatetruecolor($x, $y);
 
-	if(!imagecopyresampled($thumb_im, $orig_im, 0, 0, 0, 0, $x, $y, imagesx($orig_im), imagesy($orig_im))) {
+	if(!imagecopyresampled($target_im, $orig_im, 0, 0, 0, 0, $x, $y, imagesx($orig_im), imagesy($orig_im))) {
 		throw new Exception("Failed to resample image");
 	}
 
-	if(!imagejpeg($thumb_im, $thumbs.$filename, $thumb_prefs['quality'])) {
-		throw new Exception("Failed to write thumbnail to disk");
+	if(!imagejpeg($target_im, $target_dirname.$filename, $prefs['quality'])) {
+		throw new Exception("Failed to write resized image to disk");
 	}
 
 	imagedestroy($orig_im);
-	imagedestroy($thumb_im);
+	imagedestroy($target_im);
 
 	return true;
+}
+
+function create_thumb($filename) {
+	global $images, $thumb_prefs, $thumbs;
+	$thumbs = check_target_dir($thumbs);
+	return create_scaled_file($filename, $thumb_prefs, $images, $thumbs);
+}
+
+function create_lowres($filename) {
+	global $images, $lowres_prefs, $lowres;
+	$lowres = check_target_dir($lowres);
+	return create_scaled_file($filename, $lowres_prefs, $images, $lowres);
 }
 
 function thumb($filename) {
@@ -60,6 +68,13 @@ function thumb($filename) {
 		create_thumb($filename);
 	}
 	return $thumbs.$filename;
+}
+function lowres($filename) {
+	global $lowres;
+	if(!file_exists($lowres.$filename)) {
+		create_lowres($filename);
+	}
+	return $lowres.$filename;
 }
 
 $d = dir($images);
@@ -101,11 +116,11 @@ $d->close();
 		#image_overlay_content {
 			display: none; 
 			background-color: white; 
-			position: absolute; 
+			position: fixed; 
 			top: 20px;
 			left: 0;
 			right: 0;
-			top: 10px;
+			top: 40px;
 			margin: auto;
 			width: 800px;
 			padding: 1ex 1em;
@@ -122,25 +137,17 @@ $d->close();
 			bottom: 0;
 			opacity: 0.75;
 		}
+		#loading {
+			text-align: center;
+			color: red;
+			font-size: 14pt;
+		}
 		</style>
 		<script type="text/javascript">
-			function preload() {
-				images = [];
-				<?php
-				foreach($filenames as $entry) {
-					?>
-					image = new Image();
-					image.src = "<?=$images.$entry?>";
-					images.push(image);
-					<?php
-				}
-				?>
-			}
-			function show_img(filename, y) {
-				document.getElementById('bigimg').src = '<?=$images?>' + filename;
+			function show_img(filename) {
+				document.getElementById('bigimg').src = '<?=$lowres?>' + filename;
 				document.getElementById('image_overlay').style.display = 'block';
 				document.getElementById('image_overlay_content').style.display = 'block';
-				document.getElementById('image_overlay_content').style.top = y + 'px';
 			}
 			function image_hide() {
 				document.getElementById('image_overlay').style.display = 'none';
@@ -148,8 +155,12 @@ $d->close();
 			}
 		</script>
   </head>
-  <body>
+  <body onload="onloadevents()">
     <h1><?=$title?></h1>
+		<p id="loading">Skapar förhandsgranskning...</p>
+		<?php
+		ob_flush(); flush();
+		?>
 		<ul id="thumbs">
 			<?php
 			foreach($filenames as $entry) {
@@ -164,7 +175,7 @@ $d->close();
 				?>
 				<li>
 					<div>
-						<img src="<?=thumb($entry)?>" onclick="show_img('<?=$entry?>', this.offsetTop); return false;" alt="<?=$entry?>" /></a><br />
+						<img src="<?=thumb($entry)?>" onclick="show_img('<?=$entry?>'); return false;" alt="<?=$entry?>" /></a><br />
 						<span class="filename"><?=$entry?></span><br />
 						<span class="size">(<?=$size[0]?>x<?=$size[1]?>)</span>
 					</div>
@@ -180,6 +191,22 @@ $d->close();
 			<br /><button onclick="image_hide();">Stäng</button><br />
 		</div>
 		<script type="text/javascript">
+			function preload() {
+				images = [];
+				<?php
+				foreach($filenames as $entry) {
+					?>
+					image = new Image();
+					image.src = "<?=lowres($entry)?>";
+					images.push(image);
+					<?php
+				}
+				?>
+			}
+			function onloadevents() {
+				preload();
+				document.getElementById('loading').style.display = 'none';
+			}
 		</script>
   </body>
 </html>
