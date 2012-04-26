@@ -122,10 +122,13 @@ $d->close();
 			right: 0;
 			top: 40px;
 			margin: auto;
-			width: 800px;
+			width: 820px;
 			padding: 1ex 1em;
 			border-radius: 4px;
 			text-align: center;
+		}
+		#bigimg {
+			padding: 10px;
 		}
 		#image_overlay {
 			display: none;
@@ -144,18 +147,28 @@ $d->close();
 		}
 		</style>
 		<script type="text/javascript">
-			function show_img(filename) {
-				document.getElementById('bigimg').src = '<?=$lowres?>' + filename;
+			var current_img;
+			var images = [];
+			var filenames = [];
+			var overlay_active = false;
+			function show_img(id) {
+				console.log("show_img("+id+")");
+				filename = filenames[id];
+				overlay_active = true;
+				current_img = id;
+				document.getElementById('bigimg').src = images[id].src;
+				document.getElementById('fullsize_link').href = "<?=$images?>/" + filename;
 				document.getElementById('image_overlay').style.display = 'block';
 				document.getElementById('image_overlay_content').style.display = 'block';
 			}
 			function image_hide() {
 				document.getElementById('image_overlay').style.display = 'none';
 				document.getElementById('image_overlay_content').style.display = 'none';
+				overlay_active = false;
 			}
 		</script>
   </head>
-  <body onload="onloadevents()">
+  <body onload="onloadevents()" onkeypress="onkeypressevents(event)">
     <h1><?=$title?></h1>
 		<p id="loading">Skapar förhandsgranskning...</p>
 		<?php
@@ -164,6 +177,7 @@ $d->close();
 		<ul id="thumbs">
 			<?php
 			foreach($filenames as $entry) {
+				static $counter = 0;
 				try {
 					$size = @getimagesize($images.$entry);
 					if($size === false) {
@@ -175,30 +189,39 @@ $d->close();
 				?>
 				<li>
 					<div>
-						<img src="<?=thumb($entry)?>" onclick="show_img('<?=$entry?>'); return false;" alt="<?=$entry?>" /></a><br />
+						<img src="<?=thumb($entry)?>" id="thumb<?=$counter?>" onclick="show_img(<?=$counter?>); return false;" alt="<?=$entry?>" /></a><br />
 						<span class="filename"><?=$entry?></span><br />
 						<span class="size">(<?=$size[0]?>x<?=$size[1]?>)</span>
 					</div>
 				</li>
 				<?
+				$counter++;
 			}
 			?>
 		</ul>
 		<div id="image_overlay" onclick="image_hide()"></div>
-		<div id="image_overlay_content" onclick="image_hide()">
-			<button onclick="image_hide();">Stäng</button><br />
+		<div id="image_overlay_content">
+			<button onclick="show_img(parseInt(current_img)-1);">&lt;--</button>
+			<button onclick="image_hide();">Stäng</button>
+			<button onclick="show_img(parseInt(current_img)+1);">--&gt;</button>
+			<br />
 			<img id="bigimg" />
-			<br /><button onclick="image_hide();">Stäng</button><br />
+			<br />
+			<button onclick="show_img(parseInt(current_img)-1);">&lt;--</button>
+			<button onclick="image_hide();">Stäng</button>
+			<button onclick="show_img(parseInt(current_img)+1);">--&gt;</button>
+			<br />
+			<a id="fullsize_link" href=""><button>Full storlek</button></a>
 		</div>
 		<script type="text/javascript">
 			function preload() {
-				images = [];
 				<?php
 				foreach($filenames as $entry) {
 					?>
 					image = new Image();
 					image.src = "<?=lowres($entry)?>";
 					images.push(image);
+					filenames.push('<?=$entry?>');
 					<?php
 				}
 				?>
@@ -206,6 +229,25 @@ $d->close();
 			function onloadevents() {
 				preload();
 				document.getElementById('loading').style.display = 'none';
+			}
+			function onkeypressevents(e) {
+				var evtobj=window.event? event : e
+				console.log("keypress " + evtobj.keyCode);
+				if(overlay_active) {
+					switch (evtobj.keyCode) {
+						case 27:
+							image_hide();
+							break;
+						case 39:
+						case 40:
+							show_img(parseInt(current_img)+1);
+							break;
+						case 37:
+						case 38:
+							show_img(parseInt(current_img)-1);
+							break;
+					}
+				}
 			}
 		</script>
   </body>
