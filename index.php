@@ -1,5 +1,5 @@
 <?php
-require "_settings.php";
+require "settings.php";
 set_time_limit(300);
 
 function check_target_dir($dir) {
