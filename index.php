@@ -98,9 +98,13 @@ function thumb($filename) {
 	return $thumbs.$filename;
 }
 function lowres($filename) {
-	global $lowres;
+	global $lowres, $images;
 	if(!file_exists($lowres.$filename)) {
-		create_lowres($filename);
+		try {
+			create_lowres($filename);
+		} catch(Exception $e) {
+			return $images.$filename;
+		}
 	}
 	return $lowres.$filename;
 }
