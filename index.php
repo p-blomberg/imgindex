@@ -221,21 +221,25 @@ $d->close();
 		<ul id="thumbs">
 			<?php
 			foreach($filenames as $entry) {
+				?>
+				<li>
+					<div>
+					<?
 				static $counter = 0;
 				try {
 					$size = @getimagesize($images.$entry);
 					if($size === false) {
 						throw new Exception("getimagesize failed");
 					}
+					?>
+						<a href="<?=$images.$entry?>"><img src="<?=thumb($entry)?>" id="thumb<?=$counter?>" onclick="show_img(<?=$counter?>); return false;" alt="<?=$entry?>" /></a><br />
+					<?
 				}	catch(Exception $e) {
-					echo $e->getMessage();
+					// Skip preview for files that fail getimagesize
 				}
 				?>
-				<li>
-					<div>
-						<a href="<?=$images.$entry?>"><img src="<?=thumb($entry)?>" id="thumb<?=$counter?>" onclick="show_img(<?=$counter?>); return false;" alt="<?=$entry?>" /></a><br />
 						<span class="filename"><a href="<?=$images.$entry?>"><?=$entry?></a></span><br />
-						<span class="size">(<?=$size[0]?>x<?=$size[1]?>)</span>
+						<?/*<span class="size">(<?=$size[0]?>x<?=$size[1]?>)</span>*/?>
 					</div>
 				</li>
 				<?
