@@ -113,6 +113,9 @@ while (false !== ($entry = $d->read())) {
 	$filenames[] = $entry;
 }
 $d->close();
+
+natcasesort($filenames);
+
 ?>
 <!doctype html>
 <html>
