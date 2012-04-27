@@ -150,14 +150,17 @@ $d->close();
 			var current_img;
 			var images = [];
 			var filenames = [];
+			var exifdates = [];
 			var overlay_active = false;
 			function show_img(id) {
 				console.log("show_img("+id+")");
 				filename = filenames[id];
+				exifdate = exifdates[id];
 				overlay_active = true;
 				current_img = id;
 				document.getElementById('bigimg').src = images[id].src;
 				document.getElementById('fullsize_link').href = "<?=$images?>/" + filename;
+				document.getElementById('filename').innerHTML = filename + "<br />" + exifdate;
 				document.getElementById('image_overlay').style.display = 'block';
 				document.getElementById('image_overlay_content').style.display = 'block';
 			}
@@ -171,9 +174,7 @@ $d->close();
   <body onload="onloadevents()" onkeypress="onkeypressevents(event)">
     <h1><?=$title?></h1>
 		<p id="loading">Skapar förhandsgranskning...</p>
-		<?php
-		ob_flush(); flush();
-		?>
+		<?php ob_flush(); flush(); ?>
 		<ul id="thumbs">
 			<?php
 			foreach($filenames as $entry) {
@@ -199,6 +200,7 @@ $d->close();
 			}
 			?>
 		</ul>
+		<?php ob_flush(); flush(); ?>
 		<div id="image_overlay" onclick="image_hide()"></div>
 		<div id="image_overlay_content">
 			<button onclick="show_img(parseInt(current_img)-1);">&lt;--</button>
@@ -206,7 +208,7 @@ $d->close();
 			<button onclick="show_img(parseInt(current_img)+1);">--&gt;</button>
 			<br />
 			<img id="bigimg" />
-			<br />
+			<p id="filename"></p>
 			<button onclick="show_img(parseInt(current_img)-1);">&lt;--</button>
 			<button onclick="image_hide();">Stäng</button>
 			<button onclick="show_img(parseInt(current_img)+1);">--&gt;</button>
@@ -223,6 +225,11 @@ $d->close();
 					images.push(image);
 					filenames.push('<?=$entry?>');
 					<?php
+					$exif = exif_read_data($images.$entry, 'EXIF');
+					$exifdate = $exif['DateTimeOriginal'];
+					?>
+					exifdates.push('<?=$exifdate?>');
+					<?
 				}
 				?>
 			}
