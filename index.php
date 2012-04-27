@@ -180,6 +180,13 @@ $d->close();
 			font-size: 10pt;
 			margin: auto;
 		}
+		.filename a {
+			text-decoration: none;
+			color: black;
+		}
+		.filename a:hover {
+			text-decoration: underline;
+		}
 		</style>
 		<script type="text/javascript">
 			var current_img;
@@ -187,6 +194,7 @@ $d->close();
 			var filenames = [];
 			var exifdates = [];
 			var overlay_active = false;
+			var fullsize_link = '';
 			function show_img(id) {
 				console.log("show_img("+id+")");
 				filename = filenames[id];
@@ -194,7 +202,7 @@ $d->close();
 				overlay_active = true;
 				current_img = id;
 				document.getElementById('bigimg').src = images[id].src;
-				document.getElementById('fullsize_link').href = "<?=$images?>/" + filename;
+				fullsize_link = "<?=$images?>/" + filename;
 				document.getElementById('filename').innerHTML = filename + "<br />" + exifdate;
 				document.getElementById('image_overlay').style.display = 'block';
 				document.getElementById('image_overlay_content').style.display = 'block';
@@ -225,8 +233,8 @@ $d->close();
 				?>
 				<li>
 					<div>
-						<img src="<?=thumb($entry)?>" id="thumb<?=$counter?>" onclick="show_img(<?=$counter?>); return false;" alt="<?=$entry?>" /></a><br />
-						<span class="filename"><?=$entry?></span><br />
+						<a href="<?=$images.$entry?>"><img src="<?=thumb($entry)?>" id="thumb<?=$counter?>" onclick="show_img(<?=$counter?>); return false;" alt="<?=$entry?>" /></a><br />
+						<span class="filename"><a href="<?=$images.$entry?>"><?=$entry?></a></span><br />
 						<span class="size">(<?=$size[0]?>x<?=$size[1]?>)</span>
 					</div>
 				</li>
@@ -248,7 +256,7 @@ $d->close();
 			<button onclick="image_hide();">Stäng</button>
 			<button onclick="show_img(parseInt(current_img)+1);">--&gt;</button>
 			<br />
-			<a id="fullsize_link" href=""><button>Full storlek</button></a>
+			<button onclick="window.location=fullsize_link;">Full storlek</button>
 		</div>
 		<script type="text/javascript">
 			function preload() {
